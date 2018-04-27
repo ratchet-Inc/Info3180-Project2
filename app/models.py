@@ -24,7 +24,7 @@ class UserProfile(db.Model):
     def __repr__(self):
         return '<User %r>' % (self.username)
 
-class Post(db.Model):
+class Posts(db.Model):
     p_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     img = db.Column(db.String(64))
