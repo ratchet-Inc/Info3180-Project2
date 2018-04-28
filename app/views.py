@@ -6,9 +6,9 @@ This file creates your application.
 """
 
 # added a bunch of imports for functionality
-import os
+import os, datetime
 from app import app, db, login_manager
-from flask import render_template, request, redirect, flash, session, abort, url_for
+from flask import render_template, request, redirect, flash, session, abort, url_for, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from forms import LoginForm, registerForm, postForm
@@ -18,6 +18,38 @@ from models import UserProfile, Posts, Likes, Follow
 # Routing for your application.
 ###
 
+@app.route('/api/users/register', methods=['POST'])
+def register():
+    prof = registerForm()
+    if prof.validate_on_submit():
+        flash('File Saved', 'success')
+        img = prof.img.data
+        filename = secure_filename(img.filename)
+        fname = prof.fname.data
+        lname = prof.lname.data
+        uname = prof.username.data
+        pw = prof.passcode.data
+        bio = prof.bio.data
+        location = prof.loc.data
+        email = prof.email.data
+        img.save(app.config['UPLOAD_FOLDER']+filename)
+        rows = db.session.query(UserProfile).count()
+        profile = UserProfile(u_id=(rows + 1), username=uname, fname=fname, lname=lname, passcode=pw, email=email, loc=location, bio=bio, profImg=filename, joined=now.strftime("%Y-%m-%d"))
+        db.session.add(profile)
+        db.session.commit()
+        return jsonify({"msg":"registered"})
+    else:
+        flash_errors(prof)
+        return jsonify({"errors": form_errors(prof)})
+
+# Flash errors from the form if validation fails
+def flash_errors(form):
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(u"Error in the %s field - %s" % (
+                getattr(form, field).label.text,
+                error
+), 'danger')
 
 @app.route('/')
 def index():
@@ -27,6 +59,7 @@ def index():
 
 # Here we define a function to collect form errors from Flask-WTF
 # which we can later use
+
 def form_errors(form):
     error_messages = []
     """Collects form errors"""

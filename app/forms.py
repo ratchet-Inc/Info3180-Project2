@@ -10,12 +10,12 @@ class LoginForm(FlaskForm):
     password = PasswordField('passcode', validators=[InputRequired()])
 
 class registerForm(FlaskForm):
-    fname = StringField('firstname', validators=[InputRequired()])
+    fname = StringField('firstName', validators=[InputRequired()])
     lname = StringField('lastName', validators=[InputRequired()])
     username = StringField('userName', validators=[InputRequired()])
     location = StringField('location', validators=[InputRequired()])
     bio = StringField('bio', validators=[InputRequired()])
-    img = FileField('profilePicture', validators=[FileAllowed(['jpeg', 'jpg', 'png'], 'Images only!')])
+    img = FileField('profilePicture', validators=[FileRequired(), FileAllowed(['jpeg', 'jpg', 'png'], 'Images only!')])
     email = StringField('userEmail', validators=[InputRequired(), Email()])
     
 class postForm(FlaskForm):

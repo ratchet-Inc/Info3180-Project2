@@ -8,16 +8,20 @@
     <meta name="description" content="Photogram">
     <meta name="author" content="some disfunctional group">
 
-    <title>INFO3180 Project 2</title>
+    <title>      </title>
 
     <!-- Bootstrap -->
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    
+    
+    
     {% block css %} {% endblock%}
   </head>
   <body>
     <div id="main">
+        {% include 'flash_messages.html' %}
         {% block main %}{% endblock %}
     </div>
 
@@ -28,6 +32,7 @@
     <script src="{{ url_for('static', filename='js/vue.js') }}"></script>
     <script src="{{ url_for('static', filename='js/vue-router.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script> const token = "{{ csrf_token() }}"; </script>
     {% block js %} {% endblock%}
   </body>
 </html>

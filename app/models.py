@@ -20,9 +20,19 @@ class UserProfile(db.Model):
         return False
     def get_id(self):
         return str(self.u_id) # python 2 specific, i think
-    
     def __repr__(self):
         return '<User %r>' % (self.username)
+    def __init__(self, u_id, username, fname, lname, passcode, email, loc, bio, profImg, joined):
+        self.u_id = u_id
+        self.username = username
+        self.fname = fname
+        self.lname = lname
+        self.passcode = passcode
+        self.email = email
+        self.loc = loc
+        self.bio = bio
+        self.profImg = profImg
+        self.joined = joined
 
 class Posts(db.Model):
     p_id = db.Column(db.Integer, primary_key=True)
@@ -33,6 +43,12 @@ class Posts(db.Model):
     
     def __repr__(self):
         return '<Post %r>' % (self.p_id)
+    def __init__(self, pid, uid, img, caption, cdate):
+        self.p_id = pid
+        self.user_id = uid
+        self.img = img
+        self.capt = caption
+        self.created = cdate
 
 class Likes(db.Model):
     l_id = db.Column(db.Integer, primary_key=True)
@@ -41,6 +57,10 @@ class Likes(db.Model):
     
     def __repr__(self):
         return '<Like %r>' % (self.l_id)
+    def __init__(self, lid, uid, pid):
+        self.l_id = lid
+        self.user_id = uid
+        self.post_id = pid
         
 class Follow(db.Model):
     f_id = db.Column(db.Integer, primary_key=True)
@@ -49,3 +69,7 @@ class Follow(db.Model):
     
     def __repr__(self):
         return '<Follow %r>' % (self.f_id)
+    def __init__(self, fid, uid, fol_id):
+        self.f_id = fid
+        self.user_id = uid
+        self.follower_id = fol_id

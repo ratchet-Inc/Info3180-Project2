@@ -1,3 +1,31 @@
 body {
     padding-top: 5rem;
 }
+
+#picSect{
+    position: relative;
+    display: inline-block;
+    width: 45%;
+    overflow: hidden;
+    border-radius: 8px;
+}
+    #picSect img{
+        width: 100%;
+    }
+
+#infoSect{
+    position: relative;
+    display: inline-block;
+    width: 45%;
+    background-color: white;
+    overflow: hidden;
+    border-radius: 8px;
+    margin-left: 5%;
+}
+    #infoSect img{
+        width: 20%;
+        margin-left: 5%;
+    }
+    #infoSec div{
+        width: 40%;
+    }
