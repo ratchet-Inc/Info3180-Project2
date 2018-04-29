@@ -62,7 +62,7 @@ class Likes(db.Model):
         self.user_id = uid
         self.post_id = pid
         
-class Follow(db.Model):
+class Follows(db.Model):
     f_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     follower_id = db.Column(db.Integer)

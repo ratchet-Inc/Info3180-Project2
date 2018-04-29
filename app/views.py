@@ -13,28 +13,49 @@ from flask import render_template, request, redirect, flash, session, abort, url
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from forms import LoginForm, registerForm, postForm
-from models import UserProfile, Posts, Likes, Follow
+from models import UserProfile, Posts, Likes, Follows
 
 ###
 # Routing for your application.
 ###
 
-@app.route('/api/posts/{post_id}/like', methods=['POST'])
+@app.route('/api/posts/<int:post_id>/like', methods=['POST'])
 @login_required
-def like():
+def like(post_id):
+    rows = db.session.query(Likes).count()
+    l = Likes(lid=rows, uid=session['id'], pid=post_id)
+    db.session.add(l)
+    db.session.commit()
     return 0
 
-@app.route('/api/users/{users_id}/follow', methods=['POST'])
+@app.route('/api/users/<int:users_id>/follow', methods=['POST'])
 @login_required
-def follow():
-    return 0
+def follow(users_id):
+    rows = db.session.query(Follows).count()
+    f = Follows(fid=rows, uid=users_id, fol_id=session['id'])
+    db.session.add(f)
+    db.session.commit()
+    return '{"status":"OK", "msg":"success"}'
 
-@app.route('/api/users/{users_id}/posts', methods=['GET'])
+@app.route('/api/users/<int:users_id>/posts', methods=['GET'])
 @login_required
 def user(users_id):
-    return 0
+    print "requested id=%d", users_id
+    prof = UserProfile.query.filter_by(u_id=users_id).first()
+    if prof:
+        json = '{"user_id":'+str(users_id)+', "username":"'+prof.username+'", "fname":"'+prof.fname+'", "lname":"'+prof.lname+'", "loc":"'+prof.loc+'", "email":"'+prof.email+'", "bio":"'+prof.bio+'", "joined":"'+prof.joined+'", "image":"'+app.config['UPLOAD_FOLDER']+prof.profImg+'"'
+        posts = Posts.query.filter_by(user_id=users_id).all()
+        json = json + ', "post":{"posts":['
+        for i in xrange(0, len(posts)-1):
+            s = '{"id":'+str(posts[i].p_id)+', "user":'+str(posts[i].user_id)+', "image":"'+app.config['POSTS_FOLDER']+posts[i].img+'", "caption":"'+posts[i].capt+'", "date":"'+posts[i].created+'"}'
+            if i != len(posts)-2:
+                s = s + ','
+            json = json + s
+        json = json + ']}'
+        return jsonify(status="OK", msg=json)
+    return '{status"":"OK", "msg":"user not found."}'
 
-@app.route('/api/users/{users_id}/posts', methods=['POST'])
+@app.route('/api/users/<int:users_id>/posts', methods=['POST'])
 @login_required
 def post(users_id):
     postf = postForm()
