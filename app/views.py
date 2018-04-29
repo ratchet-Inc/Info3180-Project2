@@ -6,7 +6,8 @@ This file creates your application.
 """
 
 # added a bunch of imports for functionality
-import os, datetime
+import os
+from datetime import datetime
 from app import app, db, login_manager
 from flask import render_template, request, redirect, flash, session, abort, url_for, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
@@ -18,25 +19,119 @@ from models import UserProfile, Posts, Likes, Follow
 # Routing for your application.
 ###
 
+@app.route('/api/posts/{post_id}/like', methods=['POST'])
+@login_required
+def like():
+    return 0
+
+@app.route('/api/users/{users_id}/follow', methods=['POST'])
+@login_required
+def follow():
+    return 0
+
+@app.route('/api/users/{users_id}/posts', methods=['GET'])
+@login_required
+def user(users_id):
+    return 0
+
+@app.route('/api/users/{users_id}/posts', methods=['POST'])
+@login_required
+def post(users_id):
+    postf = postForm()
+    if post.validate_on_submit():
+        img = postf.photo.data
+        capt = postf.capt.data
+        filename = secure_filename(img.filename)
+        img.save(app.config['POSTS_FOLDER']+filename)
+        rows = db.session.query(Posts).count()
+        cdate = datetime.now().strftime("%Y-%m-%d")
+        post = Posts(pid=rows, uid=users_id, img=filename, cdate=cdate, caption=capt)
+        db.session.add(post)
+        db.session.commit()
+        flash('Post made.', 'success')
+        return '{"status":"OK", "msg":"success"}'
+    return '{"status":"OK", "msg":"failed to validate form."}'
+
+@app.route('/api/posts', methods=['GET'])
+@login_required
+def explore():
+    posts = db.session.query(Posts).all()
+    json = '{"status":"OK", ['
+    for i in xrange(0, len(posts)-1):
+        s = '{"id":'+str(posts[i].p_id)+', "user":'+str(posts[i].user_id)+', "image":"'+app.config['POSTS_FOLDER']+posts[i].img+'", "caption":"'+posts[i].capt+'", "date":"'+posts[i].created+'"}'
+        if i != len(posts)-2:
+            s = s + ','
+        json = json + s
+    json = json + ']}'
+    return jsonify(status="OK", data=json)
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        name = form.username.data
+        pw = form.password.data
+        q = UserProfile.query.filter_by(username=name, passcode=pw).first()
+        if q is None:
+            return jsonify({"status":"OK", "msg":"failed to authenticate credentials"})
+        login_user(q)
+        flash('Login Successful', 'success')
+        """n = request.args.get('next')
+        if not is_safe_url(n):
+            return jsonify({"status":"OK", "msg":"success"})"""
+        session['logged_in'] = True
+        session['uid'] = q.u_id
+        return redirect(url_for('index'))
+    return '{"status":"OK", "msg":"failed to validate form"}'
+
+@login_manager.user_loader
+def load_user(user):
+    return UserProfile.query.filter_by(username=user).first()
+
+@app.route('/api/auth/check')
+def chec():
+    auth = False
+    id = -1
+    if session.get('logged_in'):
+        auth = session['logged_in']
+    if session.get('uid'):
+        id = session['uid']
+    return jsonify(status="OK", auth=auth, id=id)
+
+@app.route('/api/auth/logout', methods=['GET'])
+@login_required
+def logout():
+    logout_user()
+    session.pop('logged_in', None)
+    session.pop('uid', None)
+    return redirect(url_for('index'))
+
 @app.route('/api/users/register', methods=['POST'])
 def register():
     prof = registerForm()
     if prof.validate_on_submit():
-        flash('File Saved', 'success')
+        pw = prof.passcode.data
+        if pw != request.form['passcodeC']:
+            flash('Passwords do NOT match.', 'error')
+            return redirect(url_for('index'))
         img = prof.img.data
-        filename = secure_filename(img.filename)
+        if img:
+            filename = secure_filename(img.filename)
+            img.save(app.config['UPLOAD_FOLDER']+filename)
+        else:
+            filename = "./static/default/default profile.jpg"
         fname = prof.fname.data
         lname = prof.lname.data
         uname = prof.username.data
-        pw = prof.passcode.data
         bio = prof.bio.data
-        location = prof.loc.data
+        location = prof.location.data
         email = prof.email.data
-        img.save(app.config['UPLOAD_FOLDER']+filename)
+        cdate = datetime.now().strftime("%Y-%m-%d")
         rows = db.session.query(UserProfile).count()
-        profile = UserProfile(u_id=(rows + 1), username=uname, fname=fname, lname=lname, passcode=pw, email=email, loc=location, bio=bio, profImg=filename, joined=now.strftime("%Y-%m-%d"))
+        profile = UserProfile(u_id=(rows + 1), username=uname, fname=fname, lname=lname, passcode=pw, email=email, loc=location, bio=bio, profImg=filename, joined=cdate)
         db.session.add(profile)
         db.session.commit()
+        flash('Registration Successful', 'success')
         return jsonify({"msg":"registered"})
     else:
         flash_errors(prof)

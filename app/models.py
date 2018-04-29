@@ -21,7 +21,7 @@ class UserProfile(db.Model):
     def get_id(self):
         return str(self.u_id) # python 2 specific, i think
     def __repr__(self):
-        return '<User %r>' % (self.username)
+        return '%r' % (self.username)
     def __init__(self, u_id, username, fname, lname, passcode, email, loc, bio, profImg, joined):
         self.u_id = u_id
         self.username = username

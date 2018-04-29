@@ -95,10 +95,46 @@ const explore = Vue.component('explore', {
 const login = Vue.component('login', {
     template:`
     <div class="jumbotron">
-        <h3>login place holder</h3>
+        <h3>Photogram Login</h3>
+        <form id="loginForm" @submit.prevent="logForm" method="POST" enctype="multipart/form">
+            <div class="formSect">
+                <label for="username">Username:</label>
+                <input type="text" name="username" />
+            </div>
+            <div class="formSect">
+                <label for="password">Password:</label>
+                <input type="password" name="password" />
+            </div>
+            <br />
+            <button type="submit">Login</button>
+        </form>
     </div>
     `,
-    methods: {},
+    methods: {
+        logForm: function() {
+            let self = this;
+            let upform = document.getElementById("loginForm");
+            let formData = new FormData(upform)
+            
+            fetch("https:/api/auth/login", {
+                method: "POST",
+                body: formData,
+                headers:{
+                    'X-CSRFToken': token
+                },
+                credentials: 'same-origin'
+            }).then(function(res){
+                console.log(res);
+                //router.go("/");
+                return res.json();
+            }).then(function(r){
+                console.log(r);
+                self.msg = r;
+            }).catch(function(er){
+                console.log(er);
+            });
+        }
+    },
     data: function() {
         return {}
     }
@@ -119,7 +155,7 @@ const logout = Vue.component('logout', {
 const register = Vue.component('register', {
     template:`
     <div class="jumbotron">
-        <h3>register place holder</h3>
+        <h3>Photogram registration form</h3>
         <form id="registerForm" @submit.prevent="regForm" method="POST" enctype="multipart/form-data">
             <div class="formSect">
                 <label for="userEmail">Email:</label>
@@ -136,6 +172,14 @@ const register = Vue.component('register', {
             <div class="formSect">
                 <label for="userName">Username:</label>
                 <input type="text" name="username" />
+            </div>
+            <div class="formSect">
+                <label for="passcode">Password:</label>
+                <input type="password" name="passcode" />
+            </div>
+            <div class="formSect">
+                <label for="passcodeC">Confirm Password:</label>
+                <input type="password" name="passcodeC" />
             </div>
             <div class="formSect">
                 <label for="location">Location:</label>
@@ -170,7 +214,7 @@ const register = Vue.component('register', {
                 credentials: 'same-origin'
             }).then(function(res){
                 console.log(res);
-                router.go('/');
+                //router.go("/");
                 return res.json();
             }).then(function(r){
                 self.msg = r;
@@ -180,7 +224,7 @@ const register = Vue.component('register', {
         }
     },
     data: function() {
-        return {}
+        return { msg:[] }
     }
 });
 
@@ -231,6 +275,25 @@ const Home = Vue.component('home', {
         </div>
     </div>
    `,
+   methods:{
+       checkLogin: function(){
+           let self = this;
+           
+           fetch("/api/auth/check").then(function(res){
+                console.log(res);
+                //router.go("/");
+                return res.json();
+            }).then(function(r){
+                self.msg = r;
+                console.log(r);
+            }).catch(function(er){
+                console.log(er);
+            });
+       }
+   },
+   beforeMount(){
+       this.checkLogin();
+   },
     data: function() {
        return {}
     }
