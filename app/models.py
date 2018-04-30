@@ -13,15 +13,19 @@ class UserProfile(db.Model):
     bio = db.Column(db.String(128))
     profImg = db.Column(db.String(64))
     joined = db.Column(db.String(16))
+    auth = db.Column(db.Boolean, default=False)
     
-    def is_authentic(self):
-        return True
+    @property
+    def is_authenticated(self):
+        return self.auth
     def is_active(self):
+        return True
+    def is_anonymous(self):
         return False
     def get_id(self):
         return str(self.u_id) # python 2 specific, i think
     def __repr__(self):
-        return '%r' % (self.username)
+        return '%s' % (self.username)
     def __init__(self, u_id, username, fname, lname, passcode, email, loc, bio, profImg, joined):
         self.u_id = u_id
         self.username = username

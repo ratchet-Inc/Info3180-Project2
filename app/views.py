@@ -9,7 +9,7 @@ This file creates your application.
 import os
 from datetime import datetime
 from app import app, db, login_manager
-from flask import render_template, request, redirect, flash, session, abort, url_for, jsonify
+from flask import render_template, request, flash, session, abort, url_for, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from forms import LoginForm, registerForm, postForm
@@ -26,7 +26,7 @@ def like(post_id):
     l = Likes(lid=rows, uid=session['id'], pid=post_id)
     db.session.add(l)
     db.session.commit()
-    return 0
+    return '{"status":"OK", "msg":"success"}'
 
 @app.route('/api/users/<int:users_id>/follow', methods=['POST'])
 @login_required
@@ -38,28 +38,28 @@ def follow(users_id):
     return '{"status":"OK", "msg":"success"}'
 
 @app.route('/api/users/<int:users_id>/posts', methods=['GET'])
-@login_required
+#@login_required
 def user(users_id):
     print "requested id=%d", users_id
     prof = UserProfile.query.filter_by(u_id=users_id).first()
     if prof:
-        json = '{"user_id":'+str(users_id)+', "username":"'+prof.username+'", "fname":"'+prof.fname+'", "lname":"'+prof.lname+'", "loc":"'+prof.loc+'", "email":"'+prof.email+'", "bio":"'+prof.bio+'", "joined":"'+prof.joined+'", "image":"'+app.config['UPLOAD_FOLDER']+prof.profImg+'"'
+        json = '{"status":"OK", "user_id":'+str(users_id)+', "username":"'+prof.username+'", "fname":"'+prof.fname+'", "lname":"'+prof.lname+'", "loc":"'+prof.loc+'", "email":"'+prof.email+'", "bio":"'+prof.bio+'", "joined":"'+prof.joined+'", "image":"'+prof.profImg+'"'
         posts = Posts.query.filter_by(user_id=users_id).all()
-        json = json + ', "post":{"posts":['
-        for i in xrange(0, len(posts)-1):
-            s = '{"id":'+str(posts[i].p_id)+', "user":'+str(posts[i].user_id)+', "image":"'+app.config['POSTS_FOLDER']+posts[i].img+'", "caption":"'+posts[i].capt+'", "date":"'+posts[i].created+'"}'
-            if i != len(posts)-2:
+        json = json + ', "posts":['
+        for i in xrange(0, len(posts)):
+            s = '{"id":'+str(posts[i].p_id)+', "user":'+str(posts[i].user_id)+', "image":"'+posts[i].img+'", "caption":"'+posts[i].capt+'", "date":"'+posts[i].created+'"}'
+            if i != len(posts)-1:
                 s = s + ','
             json = json + s
         json = json + ']}'
-        return jsonify(status="OK", msg=json)
-    return '{status"":"OK", "msg":"user not found."}'
+        return json
+    return '{"status:"OK", "msg":"user not found."}'
 
 @app.route('/api/users/<int:users_id>/posts', methods=['POST'])
 @login_required
 def post(users_id):
     postf = postForm()
-    if post.validate_on_submit():
+    if postf.validate_on_submit():
         img = postf.photo.data
         capt = postf.capt.data
         filename = secure_filename(img.filename)
@@ -74,17 +74,17 @@ def post(users_id):
     return '{"status":"OK", "msg":"failed to validate form."}'
 
 @app.route('/api/posts', methods=['GET'])
-@login_required
+#@login_required
 def explore():
     posts = db.session.query(Posts).all()
-    json = '{"status":"OK", ['
-    for i in xrange(0, len(posts)-1):
-        s = '{"id":'+str(posts[i].p_id)+', "user":'+str(posts[i].user_id)+', "image":"'+app.config['POSTS_FOLDER']+posts[i].img+'", "caption":"'+posts[i].capt+'", "date":"'+posts[i].created+'"}'
-        if i != len(posts)-2:
+    json = '{"status":"OK", "posts":['
+    for i in xrange(0, len(posts)):
+        s = '{"id":'+str(posts[i].p_id)+', "user":'+str(posts[i].user_id)+', "image":"'+posts[i].img+'", "caption":"'+posts[i].capt+'", "date":"'+posts[i].created+'"}'
+        if i != len(posts)-1:
             s = s + ','
         json = json + s
     json = json + ']}'
-    return jsonify(status="OK", data=json)
+    return json
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -93,39 +93,54 @@ def login():
         name = form.username.data
         pw = form.password.data
         q = UserProfile.query.filter_by(username=name, passcode=pw).first()
-        if q is None:
+        if not q:
             return jsonify({"status":"OK", "msg":"failed to authenticate credentials"})
+        q.auth = True
+        db.session.add(q)
+        db.session.commit()
         login_user(q)
         flash('Login Successful', 'success')
-        """n = request.args.get('next')
-        if not is_safe_url(n):
-            return jsonify({"status":"OK", "msg":"success"})"""
         session['logged_in'] = True
         session['uid'] = q.u_id
-        return redirect(url_for('index'))
+        n = session['name'] = q.username
+        session.modified = True
+        print "logged in: ", session['name']
+        return '{"status":"OK", "msg":"success", "name":"'+session['name']+'"}'
     return '{"status":"OK", "msg":"failed to validate form"}'
 
 @login_manager.user_loader
 def load_user(user):
-    return UserProfile.query.filter_by(username=user).first()
+    print "param: ", user
+    p = UserProfile.query.filter_by(u_id=user).first()
+    print "profile: ", p
+    return p
 
 @app.route('/api/auth/check')
 def chec():
     auth = False
     id = -1
+    name = ""
+    #print "name: ", session['name']
     if session.get('logged_in'):
         auth = session['logged_in']
     if session.get('uid'):
         id = session['uid']
-    return jsonify(status="OK", auth=auth, id=id)
+    if session.get('name'):
+        name = session['name']
+    return jsonify(status="OK", auth=auth, id=id, name=name)
 
 @app.route('/api/auth/logout', methods=['GET'])
 @login_required
 def logout():
+    user = current_user
+    user.auth = False
+    db.session.add(user)
+    db.session.commit()
     logout_user()
     session.pop('logged_in', None)
     session.pop('uid', None)
-    return redirect(url_for('index'))
+    session.pop('name', None)
+    return jsonify(status="OK", msg="success")
 
 @app.route('/api/users/register', methods=['POST'])
 def register():
@@ -153,7 +168,7 @@ def register():
         db.session.add(profile)
         db.session.commit()
         flash('Registration Successful', 'success')
-        return jsonify({"msg":"registered"})
+        return jsonify(status="OK", msg="success")
     else:
         flash_errors(prof)
         return jsonify({"errors": form_errors(prof)})
@@ -170,6 +185,7 @@ def flash_errors(form):
 @app.route('/')
 def index():
     """Render website's initial page and let VueJS take over."""
+    session.modified = True
     return render_template('index.html')
 
 

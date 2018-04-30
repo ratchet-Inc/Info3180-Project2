@@ -1,4 +1,7 @@
 /* Add your Application JavaScript */
+var auth = false; var u_id=2;
+var b1 = "/register"; var b1Msg = "Register"; var b2 = "/login"; var b2Msg = "Login";
+
 Vue.component('app-header', {
     template: `
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
@@ -8,7 +11,7 @@ Vue.component('app-header', {
       </button>
     
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
+        <ul class="navbar-nav mr-auto float-right">
           <li class="nav-item active">
             <router-link class="nav-link" to="/">Home <span class="sr-only">(current)</span></router-link>
           </li>
@@ -82,10 +85,48 @@ const explore = Vue.component('explore', {
     template:`
     <div class="jumbotron">
         <h3>explore Place holder</h3>
+        <div class="">
+            <ul class="postList">
+                <li class="postItem" style="visibility:hidden;">
+                    <div class="info">
+                        <p id="postername"></p>
+                    </div>
+                    <div class="picSect">
+                        <img id="postImg" src="" alt="post image" />
+                    </div>
+                    <div class="captSec">
+                        <p id="postCapt"></p>
+                    </div>
+                </li>
+            </ul>
+        </div>
     </div>
     `,
     methods: {
-        func: function(){}
+        func: function(){
+            fetch("/api/posts",{
+                method: "GET"
+            }).then(function(res){
+                return res.json();
+            }).then(function(r){
+                console.log(r);
+                var l = document.getElementsByClassName("postList")[0];
+                for(var x = 0; x < r.posts.length; x++){
+                    var copy = document.getElementsByClassName("postItem")[0].cloneNode(true);
+                    copy.style.visibility = "visible";
+                    var n = copy.childNodes;
+                    //console.log("n: "+n.length);
+                    n[1].firstChild.src = "/static/posts/"+r.posts[x].image;
+                    n[4].innerHTML = r.posts[x].caption;
+                    l.appendChild(copy);
+                }
+            }).catch(function(er){
+                console.log(er);
+            });
+        }
+    },
+    mounted: function(){
+        this.func();
     },
     data: function() {
         return {}
@@ -116,7 +157,7 @@ const login = Vue.component('login', {
             let upform = document.getElementById("loginForm");
             let formData = new FormData(upform)
             
-            fetch("https:/api/auth/login", {
+            fetch("/api/auth/login", {
                 method: "POST",
                 body: formData,
                 headers:{
@@ -125,11 +166,15 @@ const login = Vue.component('login', {
                 credentials: 'same-origin'
             }).then(function(res){
                 console.log(res);
-                //router.go("/");
+                //router.go("/explore");
                 return res.json();
             }).then(function(r){
                 console.log(r);
                 self.msg = r;
+                if(r.msg == "success"){
+                    console.log("success recieved");
+                    //router.replace("/explore");
+                }
             }).catch(function(er){
                 console.log(er);
             });
@@ -143,10 +188,28 @@ const login = Vue.component('login', {
 const logout = Vue.component('logout', {
     template:`
     <div class="jumbotron">
-        <h3>logout place holder</h3>
+        <h3>logging out..</h3>
     </div>
     `,
-    methods: {},
+    methods: {
+        func: function(){
+            fetch("/api/auth/logout",{
+                method: "GET",
+                credentials: 'same-origin'
+            }).then(function(res){
+                return res.json();
+            }).then(function(r){
+                if(r.status == "OK"){
+                    router.replace("/");
+                }
+            }).catch(function(er){
+                console.log(er);
+            });
+        }
+    },
+    mounted: function(){
+        this.func();
+    },
     data: function() {
         return {}
     }
@@ -213,11 +276,13 @@ const register = Vue.component('register', {
                 },
                 credentials: 'same-origin'
             }).then(function(res){
-                console.log(res);
-                //router.go("/");
                 return res.json();
             }).then(function(r){
                 self.msg = r;
+                console.log(r);
+                if(r.msg == "success"){
+                    router.replace("/");
+                }
             }).catch(function(er){
                 console.log(er);
             });
@@ -231,10 +296,50 @@ const register = Vue.component('register', {
 const newPost = Vue.component('npost', {
     template:`
     <div class="jumbotron">
-        <h3>post place holder</h3>
+        <h3>New Post</h3>
+        <form id="postForm" @submit.prevent="postForm" method="POST" enctype="multipart/form-data">
+            <div class="formSect">
+                <label for="capt">Caption:</label>
+                <input type="text" name="capt" />
+            </div>
+            <div class="formSect">
+                <label for="photo">Password:</label>
+                <input type="file" name="photo" />
+            </div>
+            <br />
+            <button type="submit">Post</button>
+        </form>
     </div>
     `,
-    methods: {},
+    methods: {
+        postForm: function() {
+            let self = this;
+            let upform = document.getElementById("postForm");
+            let formData = new FormData(upform)
+            
+            fetch("/api/users/"+u_id+"/posts", {
+                method: "POST",
+                body: formData,
+                headers:{
+                    'X-CSRFToken': token
+                },
+                credentials: 'same-origin'
+            }).then(function(res){
+                console.log(res);
+                //router.go("/explore");
+                return res.json();
+            }).then(function(r){
+                console.log(r);
+                self.msg = r;
+                if(r.msg == "success"){
+                    console.log("success recieved");
+                    //router.replace("/explore");
+                }
+            }).catch(function(er){
+                console.log(er);
+            });
+        }
+    },
     data: function() {
         return {}
     }
@@ -246,9 +351,107 @@ const viewPost = Vue.component('vpost', {
         <h3>post place holder</h3>
     </div>
     `,
-    methods: {},
+    methods: {
+    },
     data: function() {
         return {}
+    }
+});
+
+const viewProfile = Vue.component('vprofile', {
+    template:`
+    <div class="jumbotron">
+        <h3>Profile place holder</h3>
+        <p id="userID" style="visibility:hidden;">{{ $route.params.id }}</p>
+        <div class="infoSect">
+            <div class="imgDiv">
+                <img id="profPic" src="" alt="profile image" />
+            </div>
+            <div class="infoDetails1">
+                <p id="nameP"></p>
+                <p id="locP"></p>
+                <p id="joinP"></p>
+                <p id="bioP"></p>
+            </div>
+            <div class="infoDetails2">
+                <p id="postsP">Posts: 0</p>
+                <p id="followsP">Followers: 0</p>
+                <button>Follow</button>
+            </div>
+        </div>
+        <div class="postSect" style="visibility:hidden;">
+            <div class="postImage">
+                <img src="" alt="posted image" />
+            </div>
+        </div>
+    </div>
+    `,
+    methods: {
+        retr: function(){
+            var x = document.getElementById("userID");
+            fetch("/api/users/"+x.innerHTML+"/posts",{
+                method: "GET"
+            }).then(function(res){
+                return res.json();
+            }).then(function(r){
+                console.log(r);
+                document.getElementById("profPic").src = "/static/uploads/"+r.image;
+                document.getElementById("nameP").innerHTML = r.fname+" "+r.lname;
+                document.getElementById("locP").innerHTML = r.loc;
+                document.getElementById("bioP").innerHTML = r.bio;
+                document.getElementById("joinP").innerHTML = r.joined;
+                var loc = document.getElementsByClassName("postSect")[0];
+                for(var x = 0; x < r.posts.length; x++){
+                    var copy = document.getElementsByClassName("postImage")[0].cloneNode(true);
+                    copy.firstChild.src = "/static/posts/"+r.posts[x].image;
+                    copy.firstChild.style.visibility = "visible";
+                    loc.appendChild(copy);
+                }
+            }).catch(function(er){
+                console.log(er);
+            });
+        }
+    },
+    mounted: function(){
+        this.retr();
+    },
+    data: function() {
+        return {}
+    }
+});
+
+const myProfile = Vue.component('myprofile', {
+    template:`
+    <div class="jumbotron">
+        <h3>Profile place holder</h3>
+        <p id="userID" style="visibility:hidden;">{{ var1 }}</p>
+        <div class="infoSect">
+        </div>
+        <div class="postSec">
+        </div>
+    </div>
+    `,
+    methods: {
+        retr: function(){
+            var x = document.getElementById("userID");
+            fetch("/api/users/"+x.innerHTML+"/posts",{
+                method: "GET"
+            }).then(function(res){
+                return res.json();
+            }).then(function(r){
+                console.log(r);
+            }).catch(function(er){
+                console.log(er);
+            });
+        }
+    },
+    mounted: function(){
+        this.retr();
+    },
+    data: function() {
+        return {
+            var1: u_id
+        }
     }
 });
 
@@ -264,12 +467,12 @@ const Home = Vue.component('home', {
                 <h3>Photogram</h3>
             </div>
             <div>
-                <p>Share Photos on Phogram(fake insta)</p>
-                <div class="">
-                    <router-link class="nav-link" to="/register">Register<span class="sr-only">(current)</span></router-link>
+                <p>Share Photos on Photogram(fake insta)</p>
+                <div class="regBtn">
+                    <router-link class="nav-link" v-bind:to="route1">{{ r1 }}<span class="sr-only">(current)</span></router-link>
                 </div>
-                <div class="">
-                    <router-link class="nav-link" to="/login">Login<span class="sr-only">(current)</span></router-link>
+                <div class="logBtn">
+                    <router-link class="nav-link" :to="route2">{{ r2 }}<span class="sr-only">(current)</span></router-link>
                 </div>
             </div>
         </div>
@@ -277,25 +480,39 @@ const Home = Vue.component('home', {
    `,
    methods:{
        checkLogin: function(){
-           let self = this;
-           
-           fetch("/api/auth/check").then(function(res){
-                console.log(res);
-                //router.go("/");
-                return res.json();
-            }).then(function(r){
-                self.msg = r;
-                console.log(r);
-            }).catch(function(er){
-                console.log(er);
-            });
+           if(!auth){
+               let self = this;
+               console.log("start2: "+auth);
+               fetch("/api/auth/check").then(function(res){
+                    return res.json();
+                }).then(function(r){
+                    self.msg = r;
+                    auth = r.auth;
+                    u_id = r.id;
+                    console.log("name: "+r.name);
+                    if(auth){
+                        b1 = "/";
+                        b1Msg = r.name;
+                        b2 = "/logout";
+                        b2Msg = "Logout";
+                    }
+                }).catch(function(er){
+                    console.log("Error:"+er);
+                });
+           }
        }
    },
-   beforeMount(){
+   mounted: function(){
        this.checkLogin();
    },
-    data: function() {
-       return {}
+   data: function() {
+       console.log("start1"+b1);
+       return {
+           r1: b1Msg,
+           r2: b2Msg,
+           route1: b1,
+           route2: b2
+       }
     }
 });
 
@@ -308,7 +525,9 @@ const router = new VueRouter({
         { path: "/login", component: login },
         { path: "/logout", component: logout },
         { path: "/register", component: register },
-        { path: "/posts/new", component: newPost }
+        { path: "/posts/new", component: newPost },
+        { path: "/users/:id", component: viewProfile },
+        { path: "/myprofile", component: myProfile }
     ]
 });
 

@@ -29,3 +29,27 @@ body {
     #infoSec div{
         width: 40%;
     }
+.imgDiv{
+    width: 25%;
+}
+    .imgDiv img{
+        width: 100%;
+    }
+.postImage{
+    width: 20%;
+}
+    .postImage img{
+        width: 100%;
+    }
+.postList{
+    width: 70%;
+}
+.postItem{
+    width: 100%;
+}
+.picSect{
+    width: 100%;
+}
+    .picSect img{
+        width: 100%;
+    }
